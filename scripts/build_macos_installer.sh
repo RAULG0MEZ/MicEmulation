@@ -9,7 +9,7 @@ PKG_ROOT="${BUILD_DIR}/pkgroot"
 SCRIPTS_ROOT="${BUILD_DIR}/installerscripts"
 PRODUCT_NAME="MicEmulation"
 PAYLOAD_ARCHIVE="${BUILD_DIR}/${PRODUCT_NAME}Payload.tar.gz"
-VERSION="0.1.8"
+VERSION="0.1.9"
 
 cmake -S "${ROOT_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
 cmake --build "${BUILD_DIR}" --config Release -- -j"$(sysctl -n hw.ncpu)"

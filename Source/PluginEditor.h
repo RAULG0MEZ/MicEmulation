@@ -13,6 +13,24 @@ private:
     RodeM2ToSlateML1AudioProcessor& processor;
 };
 
+class SourceMicSelector final : public juce::Component
+{
+public:
+    explicit SourceMicSelector (RodeM2ToSlateML1AudioProcessor& processorToUse);
+
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& event) override;
+    bool keyPressed (const juce::KeyPress& key) override;
+    bool hitTest (int x, int y) override;
+    void hideMenu();
+
+private:
+    void selectProfile (int index);
+
+    RodeM2ToSlateML1AudioProcessor& processor;
+    bool menuOpen = false;
+};
+
 class RodeM2ToSlateML1AudioProcessorEditor final : public juce::AudioProcessorEditor,
                                                    private juce::Timer
 {
@@ -97,11 +115,10 @@ private:
     EmuLookAndFeel lookAndFeel;
     juce::Image backgroundImage;
     EqCurveComponent eqCurve;
+    SourceMicSelector sourceMicSelector;
     juce::Slider blendSlider;
-    juce::ComboBox sourceMicBox;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> blendAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> sourceMicAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RodeM2ToSlateML1AudioProcessorEditor)
 };
