@@ -269,26 +269,26 @@ void RodeM2ToSlateML1AudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 
     g.setColour (panelGold.withAlpha (0.84f));
     g.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
-    g.drawFittedText (valueText, scaleRect (0.425f, 0.745f, 0.15f, 0.025f), juce::Justification::centred, 1);
+    g.drawFittedText (valueText, scaleRect (0.425f, 0.742f, 0.15f, 0.025f), juce::Justification::centred, 1);
 
     g.setFont (juce::FontOptions (22.0f));
-    g.drawFittedText ("B L E N D", scaleRect (0.340f, 0.832f, 0.320f, 0.045f), juce::Justification::centred, 1);
+    g.drawFittedText ("B L E N D", scaleRect (0.340f, 0.846f, 0.320f, 0.045f), juce::Justification::centred, 1);
 
     g.setFont (juce::FontOptions (20.0f));
-    g.drawFittedText ("0", scaleRect (0.170f, 0.886f, 0.090f, 0.040f), juce::Justification::centred, 1);
-    g.drawFittedText ("200%", scaleRect (0.740f, 0.886f, 0.120f, 0.040f), juce::Justification::centred, 1);
+    g.drawFittedText ("0", scaleRect (0.170f, 0.898f, 0.090f, 0.040f), juce::Justification::centred, 1);
+    g.drawFittedText ("200%", scaleRect (0.740f, 0.898f, 0.120f, 0.040f), juce::Justification::centred, 1);
 
     g.setFont (juce::FontOptions (13.0f));
-    g.drawFittedText ("SOURCE", scaleRect (0.147f, 0.943f, 0.180f, 0.032f), juce::Justification::centred, 1);
-    g.drawFittedText ("EMULATION", scaleRect (0.665f, 0.943f, 0.210f, 0.032f), juce::Justification::centred, 1);
+    g.drawFittedText ("SOURCE", scaleRect (0.147f, 0.953f, 0.180f, 0.032f), juce::Justification::centred, 1);
+    g.drawFittedText ("EMULATION", scaleRect (0.665f, 0.953f, 0.210f, 0.032f), juce::Justification::centred, 1);
 
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::resized()
 {
-    sourceMicSelector.setBounds (scaleRect (0.287f, 0.642f, 0.426f, 0.112f));
-    eqCurve.setBounds (scaleRect (0.082f, 0.694f, 0.836f, 0.068f));
-    blendSlider.setBounds (scaleRect (0.200f, 0.872f, 0.600f, 0.040f));
+    sourceMicSelector.setBounds (scaleRect (0.287f, 0.662f, 0.426f, 0.100f));
+    eqCurve.setBounds (scaleRect (0.082f, 0.710f, 0.836f, 0.055f));
+    blendSlider.setBounds (scaleRect (0.200f, 0.886f, 0.600f, 0.040f));
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::timerCallback()
