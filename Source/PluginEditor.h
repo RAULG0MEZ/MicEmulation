@@ -66,6 +66,11 @@ private:
 
         void drawPopupMenuBackground (juce::Graphics&, int width, int height) override;
 
+        void drawPopupMenuBackgroundWithOptions (juce::Graphics&,
+                                                 int width,
+                                                 int height,
+                                                 const juce::PopupMenu::Options&) override;
+
         void drawPopupMenuItem (juce::Graphics&,
                                 const juce::Rectangle<int>& area,
                                 bool isSeparator,
@@ -77,6 +82,12 @@ private:
                                 const juce::String& shortcutKeyText,
                                 const juce::Drawable* icon,
                                 const juce::Colour* textColour) override;
+
+        void drawPopupMenuItemWithOptions (juce::Graphics&,
+                                           const juce::Rectangle<int>& area,
+                                           bool isHighlighted,
+                                           const juce::PopupMenu::Item& item,
+                                           const juce::PopupMenu::Options&) override;
     };
 
     void timerCallback() override;

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(MicEmulation
-    VERSION 0.1.7
+    VERSION 0.1.8
     LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)

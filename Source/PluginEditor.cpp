@@ -103,6 +103,7 @@ RodeM2ToSlateML1AudioProcessorEditor::RodeM2ToSlateML1AudioProcessorEditor (Rode
     sourceMicBox.setTextWhenNothingSelected ("RODE M2");
     sourceMicBox.setColour (juce::ComboBox::backgroundColourId, juce::Colours::transparentBlack);
     sourceMicBox.setColour (juce::ComboBox::outlineColourId, panelAccent.withAlpha (0.42f));
+    sourceMicBox.setColour (juce::ComboBox::focusedOutlineColourId, juce::Colours::transparentBlack);
     sourceMicBox.setColour (juce::ComboBox::textColourId, panelGold.withAlpha (0.88f));
     sourceMicBox.setColour (juce::ComboBox::arrowColourId, panelGold.withAlpha (0.72f));
     addAndMakeVisible (sourceMicBox);
@@ -148,7 +149,7 @@ void RodeM2ToSlateML1AudioProcessorEditor::resized()
 {
     sourceMicBox.setBounds (scaleRect (0.274f, 0.635f, 0.452f, 0.043f));
     eqCurve.setBounds (scaleRect (0.104f, 0.688f, 0.792f, 0.086f));
-    blendSlider.setBounds (scaleRect (0.146f, 0.837f, 0.708f, 0.040f));
+    blendSlider.setBounds (scaleRect (0.146f, 0.875f, 0.708f, 0.040f));
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::timerCallback()
@@ -192,26 +193,14 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawLinearSlider (juc
     const auto proportion = max > min ? juce::jlimit (0.0, 1.0, (slider.getValue() - min) / (max - min)) : 0.0;
     const auto thumbX = track.getX() + track.getWidth() * static_cast<float> (proportion);
     const auto centreY = track.getCentreY();
-    const auto centreGap = 44.0f;
 
     g.setColour (panelGold.withAlpha (0.42f));
-    g.drawLine (track.getX(), centreY, bounds.getCentreX() - centreGap, centreY, 1.0f);
-    g.drawLine (bounds.getCentreX() + centreGap, centreY, track.getRight(), centreY, 1.0f);
+    g.drawLine (track.getX(), centreY, track.getRight(), centreY, 1.0f);
 
     if (slider.isEnabled())
     {
-        const auto fillStart = track.getX();
-        const auto fillEnd = thumbX;
-
         g.setColour (panelGold.withAlpha (0.72f));
-        if (fillEnd < bounds.getCentreX() - centreGap)
-            g.drawLine (fillStart, centreY, fillEnd, centreY, 1.4f);
-        else
-        {
-            g.drawLine (fillStart, centreY, bounds.getCentreX() - centreGap, centreY, 1.4f);
-            if (fillEnd > bounds.getCentreX() + centreGap)
-                g.drawLine (bounds.getCentreX() + centreGap, centreY, fillEnd, centreY, 1.4f);
-        }
+        g.drawLine (track.getX(), centreY, thumbX, centreY, 1.4f);
     }
 
     const auto glowBounds = juce::Rectangle<float> (thumbX - 9.0f, centreY - 9.0f, 18.0f, 18.0f);
@@ -269,7 +258,7 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawComboBox (juce::G
     auto bounds = juce::Rectangle<float> (0.5f, 0.5f,
                                           static_cast<float> (width) - 1.0f,
                                           static_cast<float> (height) - 1.0f);
-    auto fill = juce::Colours::black.withAlpha (0.62f);
+    auto fill = juce::Colours::black.withAlpha (0.78f);
 
     if (box.isMouseOverOrDragging() || isButtonDown)
         fill = fill.brighter (0.05f);
@@ -280,14 +269,18 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawComboBox (juce::G
     g.setColour (panelAccent.withAlpha (0.78f));
     g.drawRoundedRectangle (bounds, 6.0f, 1.0f);
 
-    const auto arrowArea = bounds.removeFromRight (24.0f).reduced (7.0f, 9.0f);
+    const auto arrowArea = bounds.removeFromRight (26.0f).reduced (8.0f, 11.0f);
+    const auto arrowCentre = arrowArea.getCentre();
     juce::Path arrow;
-    arrow.startNewSubPath (arrowArea.getX(), arrowArea.getY());
-    arrow.lineTo (arrowArea.getCentreX(), arrowArea.getBottom());
-    arrow.lineTo (arrowArea.getRight(), arrowArea.getY());
+    arrow.addTriangle (arrowCentre.x - 4.2f,
+                       arrowCentre.y - 2.0f,
+                       arrowCentre.x + 4.2f,
+                       arrowCentre.y - 2.0f,
+                       arrowCentre.x,
+                       arrowCentre.y + 3.4f);
 
     g.setColour (panelGold.withAlpha (0.78f));
-    g.strokePath (arrow, juce::PathStrokeType (1.4f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.fillPath (arrow);
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::positionComboBoxText (juce::ComboBox& box,
@@ -308,10 +301,18 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawPopupMenuBackgrou
                                                static_cast<float> (height));
 
     g.setColour (juce::Colours::black.withAlpha (0.94f));
-    g.fillRoundedRectangle (bounds.reduced (1.0f), 8.0f);
+    g.fillRoundedRectangle (bounds.reduced (1.0f), 6.0f);
 
-    g.setColour (panelAccent.withAlpha (0.72f));
-    g.drawRoundedRectangle (bounds.reduced (1.0f), 8.0f, 1.0f);
+    g.setColour (panelAccent.withAlpha (0.58f));
+    g.drawRoundedRectangle (bounds.reduced (1.0f), 6.0f, 1.0f);
+}
+
+void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawPopupMenuBackgroundWithOptions (juce::Graphics& g,
+                                                                                                int width,
+                                                                                                int height,
+                                                                                                const juce::PopupMenu::Options&)
+{
+    drawPopupMenuBackground (g, width, height);
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawPopupMenuItem (juce::Graphics& g,
@@ -348,4 +349,25 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawPopupMenuItem (ju
         g.setColour ((isHighlighted && isActive ? juce::Colours::black : panelGold).withAlpha (1.0f));
 
     g.drawFittedText (text, area.reduced (16, 0), juce::Justification::centred, 1);
+}
+
+void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawPopupMenuItemWithOptions (juce::Graphics& g,
+                                                                                          const juce::Rectangle<int>& area,
+                                                                                          bool isHighlighted,
+                                                                                          const juce::PopupMenu::Item& item,
+                                                                                          const juce::PopupMenu::Options&)
+{
+    const auto* textColour = item.colour.isTransparent() ? nullptr : &item.colour;
+
+    drawPopupMenuItem (g,
+                       area,
+                       item.isSeparator,
+                       item.isEnabled,
+                       isHighlighted,
+                       item.isTicked,
+                       item.subMenu != nullptr,
+                       item.text,
+                       item.shortcutKeyDescription,
+                       item.image.get(),
+                       textColour);
 }
