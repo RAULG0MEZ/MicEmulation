@@ -3,8 +3,8 @@
 
 namespace
 {
-constexpr int editorWidth = 470;
-constexpr int editorHeight = 836;
+constexpr int editorWidth = 444;
+constexpr int editorHeight = 888;
 
 const auto panelAccent = juce::Colour (0xffc49a78);
 const auto panelGold = juce::Colour (0xffd6b18f);
@@ -27,23 +27,23 @@ EqCurveComponent::EqCurveComponent (RodeM2ToSlateML1AudioProcessor& processorToU
 
 void EqCurveComponent::paint (juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat().reduced (6.0f);
+    const auto bounds = getLocalBounds().toFloat().reduced (4.0f);
 
-    g.setColour (juce::Colours::black.withAlpha (0.46f));
-    g.fillRoundedRectangle (bounds, 7.0f);
+    g.setColour (juce::Colours::black.withAlpha (0.28f));
+    g.fillRoundedRectangle (bounds, 6.0f);
 
-    g.setColour (panelAccent.withAlpha (0.18f));
-    g.drawRoundedRectangle (bounds, 7.0f, 1.0f);
+    g.setColour (panelAccent.withAlpha (0.22f));
+    g.drawRoundedRectangle (bounds, 6.0f, 1.0f);
 
     const auto plot = bounds.reduced (10.0f, 8.0f);
 
-    g.setColour (juce::Colours::white.withAlpha (0.07f));
+    g.setColour (juce::Colours::white.withAlpha (0.045f));
     for (auto normalisedX : { 0.18f, 0.36f, 0.54f, 0.72f, 0.90f })
         g.drawVerticalLine (juce::roundToInt (plot.getX() + plot.getWidth() * normalisedX),
                             plot.getY(),
                             plot.getBottom());
 
-    g.setColour (panelGold.withAlpha (0.22f));
+    g.setColour (panelGold.withAlpha (0.17f));
     g.drawHorizontalLine (juce::roundToInt (plot.getCentreY()), plot.getX(), plot.getRight());
 
     juce::Path response;
@@ -139,16 +139,16 @@ void RodeM2ToSlateML1AudioProcessorEditor::paintOverChildren (juce::Graphics& g)
     const auto valueText = juce::String (value) + "%";
 
     g.setColour (panelGold.withAlpha (0.84f));
-    g.setFont (juce::FontOptions (13.0f).withStyle ("Bold"));
-    g.drawFittedText (valueText, scaleRect (0.425f, 0.846f, 0.15f, 0.030f), juce::Justification::centred, 1);
+    g.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
+    g.drawFittedText (valueText, scaleRect (0.425f, 0.779f, 0.15f, 0.025f), juce::Justification::centred, 1);
 
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::resized()
 {
-    eqCurve.setBounds (scaleRect (0.090f, 0.685f, 0.820f, 0.075f));
-    blendSlider.setBounds (scaleRect (0.198f, 0.872f, 0.604f, 0.026f));
-    sourceMicBox.setBounds (scaleRect (0.315f, 0.116f, 0.370f, 0.040f));
+    sourceMicBox.setBounds (scaleRect (0.274f, 0.635f, 0.452f, 0.043f));
+    eqCurve.setBounds (scaleRect (0.104f, 0.688f, 0.792f, 0.086f));
+    blendSlider.setBounds (scaleRect (0.146f, 0.837f, 0.708f, 0.040f));
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::timerCallback()
@@ -182,45 +182,47 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawLinearSlider (juc
                                                static_cast<float> (height));
     juce::ignoreUnused (sliderPos, minSliderPos, maxSliderPos);
 
-    const auto track = juce::Rectangle<float> (bounds.getX() + 4.0f,
-                                              bounds.getCentreY() - 3.0f,
-                                              bounds.getWidth() - 8.0f,
-                                              6.0f);
-
-    g.setColour (juce::Colours::black.withAlpha (0.72f));
-    g.fillRoundedRectangle (track.expanded (2.0f, 2.0f), 7.0f);
-
-    g.setColour (juce::Colours::white.withAlpha (0.08f));
-    g.drawRoundedRectangle (track.expanded (2.0f, 2.0f), 7.0f, 1.0f);
+    const auto track = juce::Rectangle<float> (bounds.getX() + 2.0f,
+                                              bounds.getCentreY() - 1.0f,
+                                              bounds.getWidth() - 4.0f,
+                                              2.0f);
 
     const auto min = slider.getMinimum();
     const auto max = slider.getMaximum();
     const auto proportion = max > min ? juce::jlimit (0.0, 1.0, (slider.getValue() - min) / (max - min)) : 0.0;
-    const auto fillRight = track.getX() + track.getWidth() * static_cast<float> (proportion);
-    const auto fill = juce::Rectangle<float> (track.getX(),
-                                             track.getY(),
-                                             fillRight - track.getX(),
-                                             track.getHeight());
+    const auto thumbX = track.getX() + track.getWidth() * static_cast<float> (proportion);
+    const auto centreY = track.getCentreY();
+    const auto centreGap = 44.0f;
 
-    g.setColour (panelAccent.withAlpha (slider.isEnabled() ? 0.78f : 0.32f));
-    g.fillRoundedRectangle (fill, 5.0f);
+    g.setColour (panelGold.withAlpha (0.42f));
+    g.drawLine (track.getX(), centreY, bounds.getCentreX() - centreGap, centreY, 1.0f);
+    g.drawLine (bounds.getCentreX() + centreGap, centreY, track.getRight(), centreY, 1.0f);
 
-    const auto thumbBounds = juce::Rectangle<float> (fillRight - 6.0f,
-                                                    bounds.getCentreY() - 9.0f,
-                                                    12.0f,
-                                                    18.0f);
+    if (slider.isEnabled())
+    {
+        const auto fillStart = track.getX();
+        const auto fillEnd = thumbX;
 
-    g.setColour (juce::Colours::black.withAlpha (0.58f));
-    g.fillRoundedRectangle (thumbBounds.translated (0.0f, 2.0f), 7.0f);
+        g.setColour (panelGold.withAlpha (0.72f));
+        if (fillEnd < bounds.getCentreX() - centreGap)
+            g.drawLine (fillStart, centreY, fillEnd, centreY, 1.4f);
+        else
+        {
+            g.drawLine (fillStart, centreY, bounds.getCentreX() - centreGap, centreY, 1.4f);
+            if (fillEnd > bounds.getCentreX() + centreGap)
+                g.drawLine (bounds.getCentreX() + centreGap, centreY, fillEnd, centreY, 1.4f);
+        }
+    }
 
-    g.setGradientFill (juce::ColourGradient (panelGold.brighter (0.15f),
-                                             thumbBounds.getX(),
-                                             thumbBounds.getY(),
-                                             panelAccent.darker (0.20f),
-                                             thumbBounds.getRight(),
-                                             thumbBounds.getBottom(),
-                                             false));
-    g.fillRoundedRectangle (thumbBounds, 7.0f);
+    const auto glowBounds = juce::Rectangle<float> (thumbX - 9.0f, centreY - 9.0f, 18.0f, 18.0f);
+    const auto thumbBounds = juce::Rectangle<float> (thumbX - 3.5f, centreY - 3.5f, 7.0f, 7.0f);
+
+    g.setColour (panelGold.withAlpha (0.24f));
+    g.fillEllipse (glowBounds);
+    g.setColour (panelGold.withAlpha (0.96f));
+    g.fillEllipse (thumbBounds);
+    g.setColour (juce::Colours::white.withAlpha (0.72f));
+    g.fillEllipse (thumbBounds.reduced (1.8f));
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawButtonBackground (juce::Graphics& g,
@@ -237,10 +239,10 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawButtonBackground 
         fill = fill.brighter (0.10f);
 
     g.setColour (fill);
-    g.fillRoundedRectangle (bounds, 7.0f);
+    g.fillRoundedRectangle (bounds, 6.0f);
 
     g.setColour ((active ? juce::Colours::black : panelGold).withAlpha (0.65f));
-    g.drawRoundedRectangle (bounds, 7.0f, 1.0f);
+    g.drawRoundedRectangle (bounds, 6.0f, 1.0f);
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawButtonText (juce::Graphics& g,
@@ -267,16 +269,16 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawComboBox (juce::G
     auto bounds = juce::Rectangle<float> (0.5f, 0.5f,
                                           static_cast<float> (width) - 1.0f,
                                           static_cast<float> (height) - 1.0f);
-    auto fill = juce::Colours::black.withAlpha (0.70f);
+    auto fill = juce::Colours::black.withAlpha (0.62f);
 
     if (box.isMouseOverOrDragging() || isButtonDown)
         fill = fill.brighter (0.05f);
 
     g.setColour (fill);
-    g.fillRoundedRectangle (bounds, 7.0f);
+    g.fillRoundedRectangle (bounds, 6.0f);
 
-    g.setColour (panelAccent.withAlpha (0.70f));
-    g.drawRoundedRectangle (bounds, 7.0f, 1.0f);
+    g.setColour (panelAccent.withAlpha (0.78f));
+    g.drawRoundedRectangle (bounds, 6.0f, 1.0f);
 
     const auto arrowArea = bounds.removeFromRight (24.0f).reduced (7.0f, 9.0f);
     juce::Path arrow;
@@ -293,7 +295,7 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::positionComboBoxText 
 {
     label.setBounds (box.getLocalBounds().reduced (10, 1).withTrimmedRight (20));
     label.setJustificationType (juce::Justification::centred);
-    label.setFont (juce::FontOptions (11.5f).withStyle ("Bold"));
+    label.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
     label.setColour (juce::Label::textColourId, panelGold.withAlpha (0.88f));
 }
 
