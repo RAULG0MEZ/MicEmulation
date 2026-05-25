@@ -20,15 +20,24 @@ public:
 
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& event) override;
-    bool keyPressed (const juce::KeyPress& key) override;
+    void mouseMove (const juce::MouseEvent& event) override;
+    void mouseExit (const juce::MouseEvent& event) override;
     bool hitTest (int x, int y) override;
     void hideMenu();
 
 private:
+    int getButtonHeight() const;
+    float getMenuGap() const;
+    juce::Rectangle<float> getButtonArea() const;
+    juce::Rectangle<float> getMenuArea() const;
+    int getMenuIndexAt (juce::Point<float> position) const;
+    void updateHoverState (bool shouldHoverButton, int newHoveredIndex);
     void selectProfile (int index);
 
     RodeM2ToSlateML1AudioProcessor& processor;
     bool menuOpen = false;
+    bool buttonHovered = false;
+    int hoveredIndex = -1;
 };
 
 class RodeM2ToSlateML1AudioProcessorEditor final : public juce::AudioProcessorEditor,
@@ -41,6 +50,7 @@ public:
     void paint (juce::Graphics&) override;
     void paintOverChildren (juce::Graphics&) override;
     void resized() override;
+    void mouseDown (const juce::MouseEvent& event) override;
 
 private:
     class EmuLookAndFeel final : public juce::LookAndFeel_V4

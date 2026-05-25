@@ -5,17 +5,26 @@ namespace
 {
 constexpr int editorWidth = 470;
 constexpr int editorHeight = 836;
+constexpr int minEditorWidth = 320;
+constexpr int minEditorHeight = 570;
+constexpr int maxEditorWidth = 940;
+constexpr int maxEditorHeight = 1672;
 
 const auto panelAccent = juce::Colour (0xffc49a78);
 const auto panelGold = juce::Colour (0xffd6b18f);
 const auto panelDark = juce::Colour (0xff080706);
 
-juce::Rectangle<int> scaleRect (float x, float y, float width, float height)
+juce::Rectangle<int> scaleRect (juce::Rectangle<int> bounds, float x, float y, float width, float height)
 {
-    return { juce::roundToInt (x * editorWidth),
-             juce::roundToInt (y * editorHeight),
-             juce::roundToInt (width * editorWidth),
-             juce::roundToInt (height * editorHeight) };
+    return { bounds.getX() + juce::roundToInt (x * static_cast<float> (bounds.getWidth())),
+             bounds.getY() + juce::roundToInt (y * static_cast<float> (bounds.getHeight())),
+             juce::roundToInt (width * static_cast<float> (bounds.getWidth())),
+             juce::roundToInt (height * static_cast<float> (bounds.getHeight())) };
+}
+
+float getEditorScale (juce::Rectangle<int> bounds)
+{
+    return static_cast<float> (bounds.getWidth()) / static_cast<float> (editorWidth);
 }
 }
 
@@ -27,15 +36,16 @@ EqCurveComponent::EqCurveComponent (RodeM2ToSlateML1AudioProcessor& processorToU
 
 void EqCurveComponent::paint (juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat().reduced (4.0f);
+    const auto bounds = getLocalBounds().toFloat();
+    const auto scale = juce::jlimit (0.70f, 2.0f, static_cast<float> (getHeight()) / (static_cast<float> (editorHeight) * 0.092f));
 
-    g.setColour (juce::Colours::black.withAlpha (0.28f));
-    g.fillRoundedRectangle (bounds, 6.0f);
+    g.setColour (juce::Colours::black.withAlpha (0.08f));
+    g.fillRoundedRectangle (bounds.reduced (0.5f * scale), 8.0f * scale);
 
-    g.setColour (panelAccent.withAlpha (0.22f));
-    g.drawRoundedRectangle (bounds, 6.0f, 1.0f);
+    g.setColour (panelAccent.withAlpha (0.12f));
+    g.drawRoundedRectangle (bounds.reduced (0.5f * scale), 8.0f * scale, 0.8f * scale);
 
-    const auto plot = bounds.reduced (10.0f, 8.0f);
+    const auto plot = bounds.reduced (7.0f * scale, 6.0f * scale);
 
     g.setColour (juce::Colours::white.withAlpha (0.045f));
     for (auto normalisedX : { 0.18f, 0.36f, 0.54f, 0.72f, 0.90f })
@@ -52,8 +62,8 @@ void EqCurveComponent::paint (juce::Graphics& g)
     const auto profileIndex = processor.getSourceMicIndex();
     const auto minFrequency = 45.0;
     const auto maxFrequency = 20000.0;
-    const auto minDb = -14.0;
-    const auto maxDb = 14.0;
+    const auto minDb = -24.0;
+    const auto maxDb = 24.0;
 
     for (int x = 0; x < juce::roundToInt (plot.getWidth()); ++x)
     {
@@ -72,100 +82,166 @@ void EqCurveComponent::paint (juce::Graphics& g)
 
     g.setColour (panelAccent.withAlpha (0.24f));
     auto glow = response;
-    g.strokePath (glow, juce::PathStrokeType (6.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath (glow, juce::PathStrokeType (6.0f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     g.setColour (panelGold);
-    g.strokePath (response, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath (response, juce::PathStrokeType (2.0f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
 SourceMicSelector::SourceMicSelector (RodeM2ToSlateML1AudioProcessor& processorToUse)
     : processor (processorToUse)
 {
-    setWantsKeyboardFocus (true);
+    setWantsKeyboardFocus (false);
+    setMouseClickGrabsKeyboardFocus (false);
+}
+
+int SourceMicSelector::getButtonHeight() const
+{
+    return juce::roundToInt (juce::jlimit (24.0f, 68.0f, static_cast<float> (getHeight()) * 0.26f));
+}
+
+float SourceMicSelector::getMenuGap() const
+{
+    return juce::jlimit (6.0f, 20.0f, static_cast<float> (getHeight()) * 0.077f);
+}
+
+juce::Rectangle<float> SourceMicSelector::getButtonArea() const
+{
+    auto bounds = getLocalBounds().toFloat();
+    return bounds.removeFromBottom (static_cast<float> (getButtonHeight())).reduced (0.5f);
+}
+
+juce::Rectangle<float> SourceMicSelector::getMenuArea() const
+{
+    const auto buttonArea = getButtonArea();
+    const auto menuBottom = buttonArea.getY() - getMenuGap();
+    const auto desiredHeight = juce::jlimit (52.0f, 156.0f, static_cast<float> (getHeight()) * 0.60f);
+    const auto menuTop = juce::jmax (0.5f, menuBottom - desiredHeight);
+
+    return { buttonArea.getX(), menuTop, buttonArea.getWidth(), juce::jmax (0.0f, menuBottom - menuTop) };
+}
+
+int SourceMicSelector::getMenuIndexAt (juce::Point<float> position) const
+{
+    if (! menuOpen)
+        return -1;
+
+    const auto menuArea = getMenuArea().reduced (0.0f, 4.0f);
+
+    if (! menuArea.contains (position))
+        return -1;
+
+    const auto names = EQModel::getProfileNames();
+    const auto rowHeight = menuArea.getHeight() / static_cast<float> (juce::jmax (1, names.size()));
+    return juce::jlimit (0, names.size() - 1, static_cast<int> ((position.y - menuArea.getY()) / rowHeight));
+}
+
+void SourceMicSelector::updateHoverState (bool shouldHoverButton, int newHoveredIndex)
+{
+    if (buttonHovered == shouldHoverButton && hoveredIndex == newHoveredIndex)
+        return;
+
+    buttonHovered = shouldHoverButton;
+    hoveredIndex = newHoveredIndex;
+    repaint();
 }
 
 bool SourceMicSelector::hitTest (int, int y)
 {
-    const auto buttonHeight = juce::roundToInt (juce::jmin (34.0f, getHeight() * 0.42f));
+    const auto buttonHeight = getButtonHeight();
     return menuOpen || y >= getHeight() - buttonHeight;
 }
 
 void SourceMicSelector::paint (juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    const auto buttonArea = bounds.removeFromBottom (juce::jmin (34.0f, getHeight() * 0.42f)).reduced (0.5f);
+    const auto buttonArea = getButtonArea();
     const auto selectedIndex = processor.getSourceMicIndex();
+    const auto scale = static_cast<float> (getButtonHeight()) / 34.0f;
+    const auto cornerRadius = 7.0f * scale;
 
-    g.setColour (juce::Colours::black.withAlpha (0.78f));
-    g.fillRoundedRectangle (buttonArea, 7.0f);
-    g.setColour (panelAccent.withAlpha (0.58f));
-    g.drawRoundedRectangle (buttonArea, 7.0f, 1.0f);
+    g.setColour (juce::Colours::black.withAlpha (buttonHovered ? 0.88f : 0.78f));
+    g.fillRoundedRectangle (buttonArea, cornerRadius);
+    g.setColour (panelGold.withAlpha (buttonHovered ? 0.22f : 0.08f));
+    g.fillRoundedRectangle (buttonArea.reduced (1.0f * scale), 6.0f * scale);
+    g.setColour (panelAccent.withAlpha (buttonHovered ? 0.78f : 0.58f));
+    g.drawRoundedRectangle (buttonArea, cornerRadius, (buttonHovered ? 1.25f : 1.0f) * scale);
 
-    g.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
+    g.setFont (juce::FontOptions (12.0f * scale).withStyle ("Bold"));
     g.setColour (panelGold.withAlpha (0.92f));
     g.drawFittedText (EQModel::getProfile (selectedIndex).name,
-                      buttonArea.toNearestInt().reduced (16, 0).withTrimmedRight (28),
+                      buttonArea.toNearestInt()
+                                .reduced (juce::roundToInt (16.0f * scale), 0)
+                                .withTrimmedRight (juce::roundToInt (28.0f * scale)),
                       juce::Justification::centred,
                       1);
 
-    const auto arrowCentre = juce::Point<float> (buttonArea.getRight() - 17.0f, buttonArea.getCentreY() + 0.5f);
+    const auto arrowCentre = juce::Point<float> (buttonArea.getRight() - 17.0f * scale,
+                                                buttonArea.getCentreY() + 0.5f * scale);
     juce::Path arrow;
-    arrow.addTriangle (arrowCentre.x - 4.5f,
-                       arrowCentre.y - 2.2f,
-                       arrowCentre.x + 4.5f,
-                       arrowCentre.y - 2.2f,
+    arrow.addTriangle (arrowCentre.x - 4.5f * scale,
+                       arrowCentre.y - 2.2f * scale,
+                       arrowCentre.x + 4.5f * scale,
+                       arrowCentre.y - 2.2f * scale,
                        arrowCentre.x,
-                       arrowCentre.y + 3.7f);
+                       arrowCentre.y + 3.7f * scale);
     g.setColour (panelGold.withAlpha (0.84f));
     g.fillPath (arrow);
 
     if (! menuOpen)
         return;
 
-    const auto menuBottom = buttonArea.getY() - 2.0f;
-    const auto menuHeight = juce::jmin (58.0f, juce::jmax (0.0f, menuBottom));
-    const auto menuArea = juce::Rectangle<float> (buttonArea.getX(),
-                                                 menuBottom - menuHeight,
-                                                 buttonArea.getWidth(),
-                                                 menuHeight);
+    const auto menuArea = getMenuArea();
 
-    g.setColour (juce::Colours::black.withAlpha (0.95f));
-    g.fillRoundedRectangle (menuArea, 7.0f);
-    g.setColour (panelAccent.withAlpha (0.48f));
-    g.drawRoundedRectangle (menuArea, 7.0f, 1.0f);
+    g.setColour (juce::Colours::black.withAlpha (0.38f));
+    g.fillRoundedRectangle (menuArea.translated (0.0f, 3.0f * scale), 8.0f * scale);
+    g.setColour (juce::Colours::black.withAlpha (0.94f));
+    g.fillRoundedRectangle (menuArea, cornerRadius);
+    g.setColour (panelGold.withAlpha (0.08f));
+    g.fillRoundedRectangle (menuArea.reduced (1.0f * scale), 6.0f * scale);
+    g.setColour (panelAccent.withAlpha (0.52f));
+    g.drawRoundedRectangle (menuArea, cornerRadius, 1.1f * scale);
 
     const auto names = EQModel::getProfileNames();
-    const auto rowHeight = menuArea.getHeight() / static_cast<float> (juce::jmax (1, names.size()));
+    const auto rowsArea = menuArea.reduced (0.0f, 4.0f * scale);
+    const auto rowHeight = rowsArea.getHeight() / static_cast<float> (juce::jmax (1, names.size()));
 
     for (int i = 0; i < names.size(); ++i)
     {
-        const auto row = juce::Rectangle<float> (menuArea.getX(),
-                                                menuArea.getY() + rowHeight * static_cast<float> (i),
-                                                menuArea.getWidth(),
-                                                rowHeight).reduced (5.0f, 2.0f);
+        const auto row = juce::Rectangle<float> (rowsArea.getX(),
+                                                rowsArea.getY() + rowHeight * static_cast<float> (i),
+                                                rowsArea.getWidth(),
+                                                rowHeight).reduced (6.0f * scale, 3.0f * scale);
         const auto active = i == selectedIndex;
+        const auto hovered = i == hoveredIndex;
 
-        if (active)
+        if (hovered)
         {
-            g.setColour (panelAccent.withAlpha (0.15f));
-            g.fillRoundedRectangle (row, 5.0f);
+            g.setColour (panelGold.withAlpha (0.18f));
+            g.fillRoundedRectangle (row, 5.0f * scale);
+        }
+        else if (active)
+        {
+            g.setColour (panelAccent.withAlpha (0.14f));
+            g.fillRoundedRectangle (row, 5.0f * scale);
         }
 
-        g.setColour (panelGold.withAlpha (active ? 0.98f : 0.78f));
-        g.drawFittedText (names[i], row.toNearestInt().reduced (8, 0), juce::Justification::centred, 1);
+        g.setFont (juce::FontOptions (12.0f * scale).withStyle ("Bold"));
+        g.setColour (panelGold.withAlpha (hovered || active ? 0.98f : 0.78f));
+        g.drawFittedText (names[i],
+                          row.toNearestInt().reduced (juce::roundToInt (8.0f * scale), 0),
+                          juce::Justification::centred,
+                          1);
     }
 }
 
 void SourceMicSelector::mouseDown (const juce::MouseEvent& event)
 {
-    grabKeyboardFocus();
+    const auto buttonArea = getButtonArea();
 
-    const auto buttonHeight = juce::roundToInt (juce::jmin (34.0f, getHeight() * 0.42f));
-    const auto buttonTop = getHeight() - buttonHeight;
-
-    if (event.y >= buttonTop)
+    if (buttonArea.contains (event.position))
     {
         menuOpen = ! menuOpen;
+        hoveredIndex = -1;
         repaint();
         return;
     }
@@ -173,34 +249,24 @@ void SourceMicSelector::mouseDown (const juce::MouseEvent& event)
     if (! menuOpen)
         return;
 
-    const auto menuBottom = buttonTop - 2;
-    const auto menuHeight = juce::jmin (58, juce::jmax (0, menuBottom));
-    const auto menuTop = menuBottom - menuHeight;
-    const auto names = EQModel::getProfileNames();
-    const auto rowHeight = static_cast<float> (juce::jmax (1, menuHeight)) / static_cast<float> (juce::jmax (1, names.size()));
-    const auto index = juce::jlimit (0, names.size() - 1, static_cast<int> ((event.y - menuTop) / rowHeight));
+    const auto index = getMenuIndexAt (event.position);
 
-    selectProfile (index);
+    if (index >= 0)
+        selectProfile (index);
+
     menuOpen = false;
+    hoveredIndex = -1;
     repaint();
 }
 
-bool SourceMicSelector::keyPressed (const juce::KeyPress& key)
+void SourceMicSelector::mouseMove (const juce::MouseEvent& event)
 {
-    if (key == juce::KeyPress::escapeKey)
-    {
-        hideMenu();
-        return true;
-    }
+    updateHoverState (getButtonArea().contains (event.position), getMenuIndexAt (event.position));
+}
 
-    if (key == juce::KeyPress::returnKey || key == juce::KeyPress::spaceKey)
-    {
-        menuOpen = ! menuOpen;
-        repaint();
-        return true;
-    }
-
-    return false;
+void SourceMicSelector::mouseExit (const juce::MouseEvent&)
+{
+    updateHoverState (false, -1);
 }
 
 void SourceMicSelector::hideMenu()
@@ -209,6 +275,7 @@ void SourceMicSelector::hideMenu()
         return;
 
     menuOpen = false;
+    hoveredIndex = -1;
     repaint();
 }
 
@@ -233,19 +300,27 @@ RodeM2ToSlateML1AudioProcessorEditor::RodeM2ToSlateML1AudioProcessorEditor (Rode
 {
     setLookAndFeel (&lookAndFeel);
     setOpaque (true);
-    setResizable (false, false);
+    setResizable (true, true);
+    setResizeLimits (minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
+
+    if (auto* constrainer = getConstrainer())
+        constrainer->setFixedAspectRatio (static_cast<double> (editorWidth) / static_cast<double> (editorHeight));
 
     blendSlider.setSliderStyle (juce::Slider::LinearHorizontal);
     blendSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
     blendSlider.setRange (0.0, 200.0, 0.01);
     blendSlider.setDoubleClickReturnValue (true, 100.0);
     blendSlider.setMouseDragSensitivity (220);
+    blendSlider.setScrollWheelEnabled (true);
+    blendSlider.setWantsKeyboardFocus (false);
+    blendSlider.setMouseClickGrabsKeyboardFocus (false);
     blendSlider.setColour (juce::Slider::thumbColourId, panelGold);
     blendSlider.setColour (juce::Slider::trackColourId, panelAccent);
     addAndMakeVisible (blendSlider);
 
     addAndMakeVisible (eqCurve);
     addAndMakeVisible (sourceMicSelector);
+    addMouseListener (this, true);
 
     blendAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (audioProcessor.parameters,
                                                                                               "blend",
@@ -257,6 +332,7 @@ RodeM2ToSlateML1AudioProcessorEditor::RodeM2ToSlateML1AudioProcessorEditor (Rode
 
 RodeM2ToSlateML1AudioProcessorEditor::~RodeM2ToSlateML1AudioProcessorEditor()
 {
+    removeMouseListener (this);
     setLookAndFeel (nullptr);
 }
 
@@ -266,31 +342,40 @@ void RodeM2ToSlateML1AudioProcessorEditor::paint (juce::Graphics& g)
 
     if (backgroundImage.isValid())
         g.drawImage (backgroundImage, getLocalBounds().toFloat(), juce::RectanglePlacement::stretchToFit);
+
+    const auto bounds = getLocalBounds();
+    const auto scale = getEditorScale (bounds);
+
+    g.setColour (panelGold.withAlpha (0.84f));
+
+    g.setFont (juce::FontOptions (12.0f * scale).withStyle ("Bold"));
+    g.drawFittedText ("Intensity", scaleRect (bounds, 0.390f, 0.887f, 0.220f, 0.026f), juce::Justification::centred, 1);
+
+    g.setFont (juce::FontOptions (14.0f * scale));
+    g.drawFittedText ("0", scaleRect (bounds, 0.090f, 0.918f, 0.070f, 0.030f), juce::Justification::centred, 1);
+    g.drawFittedText ("200%", scaleRect (bounds, 0.840f, 0.918f, 0.105f, 0.030f), juce::Justification::centred, 1);
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 {
-    const auto value = juce::roundToInt (audioProcessor.getBlendPercent());
-    const auto valueText = juce::String (value) + "%";
-
-    g.setColour (panelGold.withAlpha (0.84f));
-    g.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
-    g.drawFittedText (valueText, scaleRect (0.425f, 0.892f, 0.15f, 0.025f), juce::Justification::centred, 1);
-
-    g.setFont (juce::FontOptions (22.0f));
-    g.drawFittedText ("B L E N D", scaleRect (0.340f, 0.870f, 0.320f, 0.040f), juce::Justification::centred, 1);
-
-    g.setFont (juce::FontOptions (14.0f));
-    g.drawFittedText ("0", scaleRect (0.170f, 0.913f, 0.090f, 0.030f), juce::Justification::centred, 1);
-    g.drawFittedText ("200%", scaleRect (0.740f, 0.913f, 0.120f, 0.030f), juce::Justification::centred, 1);
-
+    juce::ignoreUnused (g);
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::resized()
 {
-    eqCurve.setBounds (scaleRect (0.082f, 0.785f, 0.836f, 0.070f));
-    blendSlider.setBounds (scaleRect (0.200f, 0.905f, 0.600f, 0.040f));
-    sourceMicSelector.setBounds (scaleRect (0.287f, 0.918f, 0.426f, 0.070f));
+    const auto bounds = getLocalBounds();
+
+    eqCurve.setBounds (scaleRect (bounds, 0.031f, 0.779f, 0.938f, 0.092f));
+    blendSlider.setBounds (scaleRect (bounds, 0.160f, 0.917f, 0.680f, 0.038f));
+    sourceMicSelector.setBounds (scaleRect (bounds, 0.285f, 0.580f, 0.430f, 0.156f));
+}
+
+void RodeM2ToSlateML1AudioProcessorEditor::mouseDown (const juce::MouseEvent& event)
+{
+    const auto eventInEditor = event.getEventRelativeTo (this);
+
+    if (! sourceMicSelector.getBounds().toFloat().contains (eventInEditor.position))
+        sourceMicSelector.hideMenu();
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::timerCallback()
@@ -323,11 +408,12 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawLinearSlider (juc
                                                static_cast<float> (width),
                                                static_cast<float> (height));
     juce::ignoreUnused (sliderPos, minSliderPos, maxSliderPos);
+    const auto scale = juce::jlimit (0.70f, 2.0f, bounds.getHeight() / (static_cast<float> (editorHeight) * 0.038f));
 
-    const auto track = juce::Rectangle<float> (bounds.getX() + 2.0f,
-                                              bounds.getCentreY() - 1.0f,
-                                              bounds.getWidth() - 4.0f,
-                                              2.0f);
+    const auto track = juce::Rectangle<float> (bounds.getX() + 2.0f * scale,
+                                              bounds.getCentreY() - 1.0f * scale,
+                                              bounds.getWidth() - 4.0f * scale,
+                                              2.0f * scale);
 
     const auto min = slider.getMinimum();
     const auto max = slider.getMaximum();
@@ -336,23 +422,29 @@ void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawLinearSlider (juc
     const auto centreY = track.getCentreY();
 
     g.setColour (panelGold.withAlpha (0.42f));
-    g.drawLine (track.getX(), centreY, track.getRight(), centreY, 1.0f);
+    g.drawLine (track.getX(), centreY, track.getRight(), centreY, 1.0f * scale);
 
     if (slider.isEnabled())
     {
         g.setColour (panelGold.withAlpha (0.72f));
-        g.drawLine (track.getX(), centreY, thumbX, centreY, 1.4f);
+        g.drawLine (track.getX(), centreY, thumbX, centreY, 1.4f * scale);
     }
 
-    const auto glowBounds = juce::Rectangle<float> (thumbX - 9.0f, centreY - 9.0f, 18.0f, 18.0f);
-    const auto thumbBounds = juce::Rectangle<float> (thumbX - 3.5f, centreY - 3.5f, 7.0f, 7.0f);
+    const auto glowBounds = juce::Rectangle<float> (thumbX - 9.0f * scale,
+                                                   centreY - 9.0f * scale,
+                                                   18.0f * scale,
+                                                   18.0f * scale);
+    const auto thumbBounds = juce::Rectangle<float> (thumbX - 3.5f * scale,
+                                                    centreY - 3.5f * scale,
+                                                    7.0f * scale,
+                                                    7.0f * scale);
 
     g.setColour (panelGold.withAlpha (0.24f));
     g.fillEllipse (glowBounds);
     g.setColour (panelGold.withAlpha (0.96f));
     g.fillEllipse (thumbBounds);
     g.setColour (juce::Colours::white.withAlpha (0.72f));
-    g.fillEllipse (thumbBounds.reduced (1.8f));
+    g.fillEllipse (thumbBounds.reduced (1.8f * scale));
 }
 
 void RodeM2ToSlateML1AudioProcessorEditor::EmuLookAndFeel::drawButtonBackground (juce::Graphics& g,

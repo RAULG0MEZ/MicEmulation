@@ -44,15 +44,28 @@ public:
     APVTS parameters;
 
 private:
+    struct DynamicBandState
+    {
+        juce::dsp::IIR::Filter<float> bandpass;
+        float envelope = 0.0f;
+        float attackCoefficient = 0.0f;
+        float releaseCoefficient = 0.0f;
+    };
+
     static APVTS::ParameterLayout createParameterLayout();
 
     void ensureFilterCount (int channelCount);
     void rebuildFilters (float blend01, int sourceMicIndex, bool resetState);
+    void processDynamicBands (float& sample,
+                              std::vector<DynamicBandState>& channelDynamicBands,
+                              const EQModel::Profile& profile,
+                              float blend01);
 
     std::atomic<float>* blendParameter = nullptr;
     std::atomic<float>* sourceMicParameter = nullptr;
 
     std::vector<std::vector<juce::dsp::IIR::Filter<float>>> filters;
+    std::vector<std::vector<DynamicBandState>> dynamicBandStates;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> blendSmoother;
     double activeSampleRate = 48000.0;
     float lastFilterBlend = -1.0f;

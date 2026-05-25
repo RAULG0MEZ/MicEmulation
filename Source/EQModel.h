@@ -22,13 +22,26 @@ struct Band
     float q;
 };
 
-inline constexpr size_t bandCount = 10;
+inline constexpr size_t bandCount = 12;
+inline constexpr size_t dynamicBandCount = 3;
+
+struct DynamicBand
+{
+    float frequencyHz;
+    float maxReductionDb;
+    float q;
+    float thresholdDb;
+    float ratio;
+    float attackMs;
+    float releaseMs;
+};
 
 struct Profile
 {
     const char* name;
     const char* shortName;
     std::array<Band, bandCount> bands;
+    std::array<DynamicBand, dynamicBandCount> dynamicBands;
 };
 
 inline constexpr std::array<Profile, 2> profiles {{
@@ -36,16 +49,23 @@ inline constexpr std::array<Profile, 2> profiles {{
         "RODE M2",
         "M2",
         {{
-            { BandType::lowShelf,    92.0f,  9.00f, 0.72f },
-            { BandType::peak,       205.0f, -2.19f, 1.20f },
-            { BandType::peak,       500.0f, -1.15f, 1.75f },
-            { BandType::peak,      1320.0f, -0.42f, 2.60f },
-            { BandType::peak,      3120.0f, -2.09f, 2.20f },
-            { BandType::peak,      4550.0f, -1.99f, 2.00f },
-            { BandType::peak,      5900.0f,  5.97f, 1.10f },
-            { BandType::peak,      8200.0f, -2.50f, 2.30f },
-            { BandType::peak,      9700.0f,  2.26f, 2.10f },
-            { BandType::highShelf,16200.0f, -2.71f, 0.65f },
+            { BandType::lowShelf,    73.2f, 12.00f, 2.65f },
+            { BandType::peak,       108.6f, 11.00f, 1.39f },
+            { BandType::peak,       225.6f, -3.73f, 2.75f },
+            { BandType::peak,       501.9f, -2.72f, 3.28f },
+            { BandType::peak,      1347.8f, -1.95f, 6.06f },
+            { BandType::peak,      3264.2f, -3.06f, 2.51f },
+            { BandType::peak,      4852.3f, -4.22f, 1.93f },
+            { BandType::peak,      6112.7f, 11.00f, 1.26f },
+            { BandType::peak,      7445.1f, -5.38f, 1.70f },
+            { BandType::peak,      9686.1f,  0.74f, 4.79f },
+            { BandType::peak,     14076.1f,  0.54f, 2.04f },
+            { BandType::highShelf,17594.3f, -8.00f, 1.00f },
+        }},
+        {{
+            { 4852.3f, 1.15f, 1.60f, -31.0f, 1.35f, 5.0f, 95.0f },
+            { 7445.1f, 1.85f, 2.30f, -35.0f, 1.60f, 2.0f, 115.0f },
+            { 9686.1f, 0.90f, 3.00f, -36.0f, 1.35f, 2.0f, 90.0f },
         }}
     },
     {
@@ -55,13 +75,20 @@ inline constexpr std::array<Profile, 2> profiles {{
             { BandType::lowShelf,    90.0f, -0.38f, 0.70f },
             { BandType::peak,       180.0f, -6.33f, 1.10f },
             { BandType::peak,       350.0f, -2.07f, 1.40f },
-            { BandType::peak,       800.0f,-10.00f, 1.35f },
+            { BandType::peak,       800.0f, -5.00f, 1.35f },
             { BandType::peak,      1400.0f, -0.53f, 1.90f },
             { BandType::peak,      2600.0f,  0.19f, 1.70f },
             { BandType::peak,      4200.0f, -1.41f, 1.55f },
             { BandType::peak,      6500.0f,  2.58f, 1.25f },
             { BandType::peak,      9800.0f,  0.74f, 1.60f },
+            { BandType::peak,     12500.0f,  0.00f, 2.00f },
+            { BandType::peak,     18000.0f,  0.00f, 2.00f },
             { BandType::highShelf,14500.0f,  1.79f, 0.70f },
+        }},
+        {{
+            { 4800.0f, 0.0f, 1.60f, -31.0f, 1.00f, 5.0f, 95.0f },
+            { 7400.0f, 0.0f, 2.30f, -35.0f, 1.00f, 2.0f, 115.0f },
+            { 9700.0f, 0.0f, 3.00f, -36.0f, 1.00f, 2.0f, 90.0f },
         }}
     },
 }};
